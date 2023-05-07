@@ -1,5 +1,5 @@
 
-const Combo = require('../models/combo')
+const Combo = require('../models/Combo')
 
 
 const comboController ={

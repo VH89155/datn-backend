@@ -23,10 +23,14 @@ const TicketSchema = new Schema({
         type:Number,
         required:true
     },
+    payment:{
+        type:String,
+        required:true    
+    },
     combo:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Combo",
-
+        type:[] ,
+        default:null
+        
     },
     status:{
         type:Boolean,
