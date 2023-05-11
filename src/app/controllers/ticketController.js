@@ -5,7 +5,7 @@ const Ticket = require("../models/Ticket");
 const Room = require("../models/Room");
 const User = require("../models/User");
 const Combo = require("../models/Combo");
-
+const QRCode = require('qrcode');
 
 const ticket = async(ticketID)=>{
    const data = await Ticket.findById(ticketID).lean().then(async(ticket)=>{
@@ -57,6 +57,29 @@ const ticketController = {
         .lean()
         .then(async (data) => {
                 const array1 = await Bluebird.map(data, async(item)=>{
+                  const ticket = `
+                    \nid: ${item._id},
+                    \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                      return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+                    )},
+                    \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                      .lean()
+                      .then(async (data) => {
+                        return `
+                          \n\tThời gian: ${data.time},
+                          \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                            return `  ${data.name}`
+                          })},
+                          \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                            return `  ${data.name}`
+                          })}
+                        `;
+                      })} ,
+                    \nRạp phim: CSV
+                  `
+                  let qr = await QRCode.toDataURL(`${ticket}`)
+                    console.log(qr);
+                    
                     return {
                         tiketID: item._id,
                         showTime: await ShowTime.findById(item.time)
@@ -76,7 +99,9 @@ const ticketController = {
                         number: item.number,
                         price: item.price,
                         payment: item.payment ?? null,
-                        combo: item.combo ?? null
+                        combo: item.combo ?? null,
+                        maQR:  qr
+                      
                       };
                 }, { concurrency: data.length})
 

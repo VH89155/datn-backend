@@ -3,14 +3,14 @@ const ShowTime = require("../models/ShowTime");
 const Bluebird = require("bluebird");
 
 const Time_MoiveID_Date = async (moiveId) => {
-  let timeNow = new Date();     
-    timeNow.setHours(0);
-    timeNow.setMinutes(0);       
-    timeNow.setSeconds(0);
-    console.log(timeNow);
-    
+  let timeNow = new Date();
+  timeNow.setHours(0);
+  timeNow.setMinutes(0);
+  timeNow.setSeconds(0);
+  console.log(timeNow);
+
   const times = await ShowTime.find({ moive: { $in: moiveId } }).lean();
-  
+
   // console.log("time:", times)
   let arrayTime = [];
   let arrayTimeDate = [];
@@ -45,7 +45,7 @@ const Time_MoiveID_Date = async (moiveId) => {
     if (a.time < b.time) return -1;
     return 0;
   });
-   arrayTimeDate = arrayTimeDate.filter((item)=> item.time>timeNow);
+  arrayTimeDate = arrayTimeDate.filter((item) => item.time > timeNow);
   return arrayTimeDate;
 };
 
@@ -103,10 +103,10 @@ const moiveController = {
     }
   },
   getMoivesAndShowTime: async (req, res) => {
-    let timeNow = new Date();     
+    let timeNow = new Date();
     timeNow.setHours(0);
-   
-    timeNow.setMinutes(0);       
+
+    timeNow.setMinutes(0);
     timeNow.setSeconds(0);
     console.log(timeNow);
     console.log(req.query);
@@ -156,9 +156,7 @@ const moiveController = {
         res.status(200).json(array);
 
         // res.status(200).json("No moives found");
-      } 
-      
-      else if (moives == "" || (!moives && !req.query.time)) {
+      } else if (moives == "" || (!moives && !req.query.time)) {
         console.log("No moives and time");
         const moives = await Moive.find().lean();
         let allShowTime = await ShowTime.find().lean();
@@ -167,7 +165,7 @@ const moiveController = {
           if (a.time < b.time) return -1;
           return 0;
         });
-        allShowTime = allShowTime.filter((item)=> item.time>timeNow);
+        allShowTime = allShowTime.filter((item) => item.time > timeNow);
         // console.log(allShowTime);
         let allDate = [];
         allShowTime.map((item) => {
@@ -179,11 +177,13 @@ const moiveController = {
         });
 
         allDate = [...new Set(allDate)];
-        const arrayData = await Bluebird.map(allDate,async (itemDate) => 
-        {
+        const arrayData = await Bluebird.map(
+          allDate,
+          async (itemDate) => {
             console.log(itemDate);
-            const array = await Bluebird.map(moives, async (item) => 
-            {
+            const array = await Bluebird.map(
+              moives,
+              async (item) => {
                 const times = await ShowTime.find({
                   moive: { $in: item._id },
                 }).lean();
@@ -204,13 +204,13 @@ const moiveController = {
                 // console.log(arrayTimeDate)
 
                 return { moive, time: arrayTimeDate };
-
-              },{ concurrency: moives.length }
+              },
+              { concurrency: moives.length }
             );
 
-
             return { date: itemDate, array: array };
-          },{ concurrency: allDate.length }
+          },
+          { concurrency: allDate.length }
         );
 
         // console.log(array)
@@ -219,7 +219,7 @@ const moiveController = {
         // res.status(200).json("No moives found");
       } else if (!req.query.time) {
         const moivesId = moives.split(" ");
-        
+
         const arrayMoivesTime = await Bluebird.map(
           moivesId,
           async (item) => {
@@ -232,8 +232,7 @@ const moiveController = {
         );
         console.log(arrayMoivesTime);
         res.status(200).json(arrayMoivesTime);
-      } 
-      else if (req.query.time) {
+      } else if (req.query.time) {
         const moivesId = moives.split(" ");
         console.log("moivesId: asdsa" + moivesId);
         // let query = `${time_query.getDate()}-${time_query.getMonth()}-${time_query.getFullYear()}`
@@ -270,6 +269,97 @@ const moiveController = {
       res.status(401).json(error);
     }
   },
+  ////// Edit Moive
+
+  editMoive: async (req, res) => {
+    try {
+      const {
+        _id,
+        name,
+        age,
+        category,
+        description,
+        images,
+        performer,
+        premiere_date,
+        trailer,
+        origin,
+        director,
+        time,
+        rating,
+      } = { ...req.body };
+      // await Moive.findByIdAndUpdate(_id,{$set :{ images:[] } },{multi:true})
+      await Moive.findByIdAndUpdate(_id, {
+        $set: {
+          name,
+          age,
+          category,
+          description,
+          images,
+          performer,
+          premiere_date,
+          trailer,
+          origin,
+          director,
+          time,
+          rating,
+        },
+      });
+      res.status(200).json({ status: "success" });
+    } catch (error) {
+      console.log(error);
+      res.status(401).json(error);
+    }
+  },
+  delteMoive: async (req, res) => {
+    try {
+      const deleted = await Moive.delete({ _id:{$in: req.params.id}}).then(async()=>{
+        const arrayShowTime = await ShowTime.find().lean()
+        arrayShowTime.map(async(item)=>{
+         await ShowTime.delete({ moive: {$in:req.params.id }})
+        })
+     })
+      
+      res.status(200).json({success:true,status:"Deleted success !"});
+     
+    } catch (error) {
+      console.log(error);
+      res.status(401).json(error);
+    }
+  },
+  deleteForceMoive: async(req,res ) =>{
+    try{
+       await Moive.deleteOne({ _id: req.params.id})
+        return res.status(200).json("Deleted susssces");
+    }
+    catch(err){
+        return res.status(401).json(err);
+    }
+  },
+  trashMoives: async(req,res) =>{
+    try{
+      const Moives = await Moive.findDeleted();
+      return res.status(200).json(Moives)
+    }
+    catch(err){
+      return res.status(401).json(err);
+    }
+  },
+  restoreMoive: async(req,res)=>{
+    try{
+     await Moive.restore({ _id: req.params.id }).then(async()=>{
+      const arrayShowTime = await ShowTime.find().lean()
+      arrayShowTime.map(async(item)=>{
+       await ShowTime.restore({ moive: {$in:req.params.id }})
+      })
+   })
+
+      return res.status(200).json({success:true});
+    }
+    catch(err){
+      return res.status(401).json(err);
+    }
+  }
 };
 
 module.exports = moiveController;
