@@ -9,7 +9,7 @@ const showTimeController = require('../app/controllers/showTimeController')
 router.get("/", showTimeController.getAllShowTime);
 
 router.post("/", showTimeController.createShowTime);
-
+router.put("/", showTimeController.editShowTime)
 router.get("/:moiveId", showTimeController.getShowTimeMoiveId);
 router.get("/show/:showtimeId", showTimeController.getShowTimeId);
 

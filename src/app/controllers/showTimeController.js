@@ -40,7 +40,7 @@ const showTimeController = {
       if (statusError === "" && roomId) {
         const moiveRoom = await ShowTime.find({ room: { $in: roomId } }).lean();
         if (moiveRoom) {
-          const array = await moiveRoom.filter((item) => {
+          const array = moiveRoom.filter((item) => {
             const timeItem = new Date(item.time);
             if (Math.abs(time.getTime() - timeItem.getTime()) < 14400000) {
               console.log("Loi Room");
@@ -65,12 +65,70 @@ const showTimeController = {
         }
       }
 
-      // const showTime = await ShowTime({
-      //     moive: req.body.moive,
-      //     time: req.body.time,
-      //     room: req.body.room,
-      // })
-      // const newShowTime = await showTime.save();
+      
+      res.status(200).json({ statusError, statusSucsses });
+    } catch (err) {
+      console.log(err);
+      res.status(401).json(err);
+    }
+  },
+
+  editShowTime: async (req, res, next) => {
+    console.log(req.body);
+    try {
+      let statusError = "";
+      let statusSucsses = null;
+      let { moiveId, time, roomId,showTimeID } = req.body;
+      time = new Date(time);
+      console.log(time.getHours());
+      const moive = await Moive.findById(moiveId);
+      if (moive) {
+        const premiere_date = new Date(moive.premiere_date);
+        if (time.getTime() >= premiere_date.getTime()) {
+          console.log("TM", time.getTime() - premiere_date.getTime());
+          // res.status(200).json("Ok")
+        } else if (time.getTime() < premiere_date.getTime()) {
+          console.log("Loi", time.getTime() - premiere_date.getTime());
+          statusError = "Lỗi ngày chiếu";
+          // res.status(200).json("Loi ngay chieu");
+        }
+      }
+
+      if (statusError === "" && roomId) {
+        const showtime = await ShowTime.findById(showTimeID).lean();
+        let moiveRoom = await ShowTime.find({ room: { $in: roomId },time :{$ne: showtime.time}  }).lean();
+        
+        if (moiveRoom) {
+          const array = moiveRoom.filter((item) => {
+            const timeItem = new Date(item.time);
+            
+            if (Math.abs(time.getTime() - timeItem.getTime()) < 14400000) {
+              console.log("Loi Room");
+              return true;
+            } else if (Math.abs(time.getTime() - timeItem.getTime()) > 14400000)
+              return false;
+          });
+          console.log(array.length);
+          if (array.length === 0) {
+            const showTimeNew = await ShowTime.findByIdAndUpdate(
+              showTimeID , 
+             {
+               $set:{
+                  moive:moiveId,
+                  time: time,
+                  room: roomId,
+              }
+            }
+            ).then((data) => (statusSucsses = data));
+          
+         
+          } else if (array.length > 0) {
+            statusError = "Lỗi phòng chiếu hiện đang được sử dụng";
+          }
+        }
+      }
+
+      
       res.status(200).json({ statusError, statusSucsses });
     } catch (err) {
       console.log(err);

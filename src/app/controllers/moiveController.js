@@ -1,6 +1,59 @@
 const Moive = require("../models/Moive");
 const ShowTime = require("../models/ShowTime");
+const Room = require("../models/Room");
 const Bluebird = require("bluebird");
+
+let timeNow = new Date();
+timeNow.setHours(0);
+timeNow.setMinutes(0);
+timeNow.setSeconds(0);
+console.log(timeNow);
+
+// const Time_MoiveID_Date = async (moiveId) => {
+
+
+//   const times = await ShowTime.find({ moive: { $in: moiveId } }).lean();
+
+//   // console.log("time:", times)
+//   let arrayTime = [];
+//   let arrayTimeDate = [];
+
+//   times.map(async (item, index, times) => {
+//     const time = new Date(item.time);
+//     // const room = await Room.findById(item.room).lean()
+//     let query = `${time.getDate()}-${
+//       time.getMonth() + 1
+//     }-${time.getFullYear()}`;
+//     //  console.log( "query",query)
+
+//     const array = times.map((item) => {
+//       const timeItem = new Date(item.time);
+//       let query1 = `${timeItem.getDate()}-${
+//         timeItem.getMonth() + 1
+//       }-${timeItem.getFullYear()}`;
+//       if (query === query1) {
+//         return item;
+//       } 
+//       // else {
+//       //   return false;
+//       // }
+//     });
+//     arrayTime.push(query);
+//     if (!arrayTimeDate.find((item) => item.date === query)) {
+//       arrayTimeDate.push({ time: time, date: query, array: array });
+//     }
+//   });
+//   // Promise.all(arrayTime)
+//   console.log(arrayTime, arrayTimeDate);
+//   arrayTimeDate.sort((a, b) => {
+//     if (a.time > b.time) return 1;
+//     if (a.time < b.time) return -1;
+//     return 0;
+//   });
+//   arrayTimeDate = arrayTimeDate.filter((item) => item.time > timeNow);
+//   return arrayTimeDate;
+// };
+
 
 const Time_MoiveID_Date = async (moiveId) => {
   let timeNow = new Date();
@@ -66,7 +119,7 @@ const moiveController = {
 
       // console.log(moiveId);
 
-      arayTimeDate = await Time_MoiveID_Date(moiveId);
+     arayTimeDate = await Time_MoiveID_Date(moiveId);
 
       //    console.log(arayTimeDate)
       return res.status(200).json({ moive, arayTimeDate });
@@ -120,7 +173,7 @@ const moiveController = {
       // console.log(moivesId, typeof(moivesId))
       const time_query = new Date(req.query.time);
       console.log(time_query, typeof req.query.time);
-
+/////////////// No moives ////////////////////////////////////////////////
       if (moives == "" || (!moives && req.query.time)) {
         console.log("No moives");
         const moives = await Moive.find().lean();
@@ -135,20 +188,20 @@ const moiveController = {
 
             times.map(async (item) => {
               const time = new Date(item.time);
-
+              const room = await Room.findById(item.room).lean();
               let query1 = `${time.getDate()}-${
                 time.getMonth() + 1
               }-${time.getFullYear()}`;
               console.log(req.query.time, query1);
               if (req.query.time === query1) {
-                arrayTimeDate.push(item);
+                arrayTimeDate.push({...item,room});
               }
             });
             const moive = await Moive.findById(item).lean();
             // Promise.all(arrayTime)
             console.log(arrayTimeDate);
 
-            return { moive, time: arrayTimeDate };
+            return { moive, date: req.query.time, time: arrayTimeDate };
           },
           { concurrency: moives.length }
         );
@@ -156,7 +209,9 @@ const moiveController = {
         res.status(200).json(array);
 
         // res.status(200).json("No moives found");
-      } else if (moives == "" || (!moives && !req.query.time)) {
+      }
+////////////////////// ("No moives and time");//////////////////////      
+      else if (moives == "" || (!moives && !req.query.time)) {
         console.log("No moives and time");
         const moives = await Moive.find().lean();
         let allShowTime = await ShowTime.find().lean();
@@ -188,22 +243,24 @@ const moiveController = {
                   moive: { $in: item._id },
                 }).lean();
                 let arrayTimeDate = [];
+                
                 times.map(async (item) => {
                   const time = new Date(item.time);
-
+                  const room = await Room.findById(item.room).lean()  
                   let query1 = `${time.getDate()}-${
                     time.getMonth() + 1
                   }-${time.getFullYear()}`;
                   //  console.log(req.query.time ,query1)
                   if (itemDate === query1) {
-                    arrayTimeDate.push(item);
+                    arrayTimeDate.push({...item,room});
                   }
                 });
                 const moive = await Moive.findById(item).lean();
+                
                 // Promise.all(arrayTime)
                 // console.log(arrayTimeDate)
 
-                return { moive, time: arrayTimeDate };
+                return { moive, date: req.query.time, arrayTimeDate };
               },
               { concurrency: moives.length }
             );
@@ -217,7 +274,12 @@ const moiveController = {
         res.status(200).json(arrayData);
 
         // res.status(200).json("No moives found");
-      } else if (!req.query.time) {
+      } 
+      
+      
+ /////////////////////////////////////////////     
+      
+      else if (!req.query.time) {
         const moivesId = moives.split(" ");
 
         const arrayMoivesTime = await Bluebird.map(
@@ -226,13 +288,15 @@ const moiveController = {
             return {
               moive: item,
               time: await Time_MoiveID_Date(item),
+              date: req.query.time,
             };
           },
           { concurrency: moivesId.length }
         );
         console.log(arrayMoivesTime);
         res.status(200).json(arrayMoivesTime);
-      } else if (req.query.time) {
+      } 
+      else if (req.query.time) {
         const moivesId = moives.split(" ");
         console.log("moivesId: asdsa" + moivesId);
         // let query = `${time_query.getDate()}-${time_query.getMonth()}-${time_query.getFullYear()}`
@@ -244,13 +308,13 @@ const moiveController = {
             // times = times.filter((item)=> item.time>timeNow);
             times.map(async (item) => {
               const time = new Date(item.time);
-
+               const room = await Room.findById(item.room).lean()
               let query1 = `${time.getDate()}-${
                 time.getMonth() + 1
               }-${time.getFullYear()}`;
               console.log(req.query.time, query1);
               if (req.query.time === query1) {
-                arrayTimeDate.push(item);
+                arrayTimeDate.push({...item, room});
               }
             });
             const moive = await Moive.findById(item).lean();
