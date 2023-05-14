@@ -35,6 +35,12 @@ const authController = {
   },
   authGoogle_New : async(req,res)=>{
     try{
+      const checkUser = await User.findOne({
+        email:req.body.email,
+        authType: "loacal",
+      })
+      if(checkUser)
+        return res.status(200).json({ success: false,message:"Bạn đã dùng email này để đăng kí tài khoản khác, hãy kiểm tra lại nhé!" });      
       const user = await User.findOne({
         authGoogleID: req.body.sub,
         email:req.body.email,

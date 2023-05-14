@@ -2,20 +2,21 @@ const mongoose = require('mongoose');
 const Schema= mongoose.Schema;
 var mongooseDelete = require('mongoose-delete');
 
-const ComboSchema = new Schema({    
+const NewSchema = new Schema({    
     name:{
         type:String,
         require:true,
     },
-    images:{
+    time:{
+        type:Date,
+        default:Date.now()
+    },
+    image:{
         type:String,
-        default:"https://res.cloudinary.com/duytmd7ue/image/upload/v1683021038/6443fd2e624be_1682177326_djhdmr.png"
+        require: true,
     },
-    price:{
-        type:Number,
-        require:true
-    },
-    description:{
+
+    data:{
         type: String,
      },
     status:{
@@ -31,9 +32,9 @@ const ComboSchema = new Schema({
 
 },{timestamps:true});
 
-ComboSchema.plugin(mongooseDelete,{
+NewSchema.plugin(mongooseDelete,{
     overrideMethods: 'all',
     deletedAt: true,
 })
 
-module.exports = mongoose.model('Combo', ComboSchema);
+module.exports = mongoose.model('New', NewSchema);
