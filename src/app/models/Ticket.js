@@ -27,6 +27,10 @@ const TicketSchema = new Schema({
         type:String,
         required:true    
     },
+    paymentId:{
+        type:String,
+        default:null,
+    },
     combo:{
         type:[] ,
         default:null

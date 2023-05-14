@@ -7,6 +7,7 @@ const auth=require('./auth')
 const ticket = require('./ticket')
 const combo= require('./combo')
 const user= require('./user')
+const payPal = require('./payPal')
 
 function route(app){
     app.use('/api/upload', upload);
@@ -17,6 +18,7 @@ function route(app){
     app.use('/api/ticket',ticket);
     app.use('/api/combo', combo);
     app.use('/api/user', user);
+    app.use('/api/paypal', payPal);
 
 }
 

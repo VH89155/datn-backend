@@ -9,7 +9,7 @@ timeNow.setMinutes(0);
 timeNow.setSeconds(0);
 console.log(timeNow);
 
-// const Time_MoiveID_Date = async (moiveId) => {
+
 
 
 //   const times = await ShowTime.find({ moive: { $in: moiveId } }).lean();
@@ -286,7 +286,7 @@ const moiveController = {
           moivesId,
           async (item) => {
             return {
-              moive: item,
+              moive: await Moive.findById(item).lean(),
               time: await Time_MoiveID_Date(item),
               date: req.query.time,
             };

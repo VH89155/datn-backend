@@ -41,16 +41,22 @@ const ticketController = {
     try {
       const infoTicket = req.body;
       console.log(infoTicket);
+      const ISticket = await Ticket.findOne({paymentId: infoTicket.paymentId});
+      if(!ISticket){
       const newTicket = new Ticket(infoTicket);
       const ticket = await newTicket.save();
       console.log(ticket);
-      res.status(200).json(ticket);
+      res.status(200).json({ticket, success: true});
+      }
+      else if(ISticket)
+      res.status(200).json({success: false})
+      
     } catch (error) {
       res.status(404).json({ error: error });
     }
   },
   getAllTicketUserID: async (req, res) => {
-    console.log(req.params.userID);
+    // console.log(req.params.userID);
     try {
       const userID = req.params.userID;
       const tickets = await Ticket.find({ user: userID })
@@ -78,7 +84,7 @@ const ticketController = {
                     \nRạp phim: CSV
                   `
                   let qr = await QRCode.toDataURL(`${ticket}`)
-                    console.log(qr);
+                    // console.log(qr);
                     
                     return {
                         tiketID: item._id,
@@ -99,13 +105,21 @@ const ticketController = {
                         number: item.number,
                         price: item.price,
                         payment: item.payment ?? null,
-                        combo: item.combo ?? null,
+                        combo:  await Bluebird.map(item.combo, async(item)=>{
+                            const combo = await Combo.findById(item.id).lean()
+                            console.log( "combo",combo)
+                            return{
+                              id : combo._id,
+                              name: combo.name,
+                              value: item.value,
+                            }
+                        }, { concurrency: item.combo.length}) ?? null,
                         maQR:  qr
                       
                       };
                 }, { concurrency: data.length})
 
-          console.log(array1)
+          // console.log(array1)
           return array1;
         });
       res.status(200).json(tickets);

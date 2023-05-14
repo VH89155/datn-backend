@@ -7,7 +7,7 @@ const bcrypt=require('bcryptjs');
 var User= new Schema({
     username:{
         type:String,
-        required: true,
+        // required: true,
         unique:true,
         lowercase:true
     },
@@ -23,11 +23,11 @@ var User= new Schema({
     },
     fullName:{
         type:String,
-        required: true
+        default:"Nguời dùng"
     },
     password:{
         type:String,
-        required: true
+        
     },
     phoneNumber:{
         type:String,
@@ -37,6 +37,16 @@ var User= new Schema({
         type:String,
         default:null,
     },
+    authGoogleID:{
+        type:String,
+        default:null,
+    }
+    ,
+    authType:{
+        type:String,
+        enum: ['local','google'],
+        default:'local'
+    },
     avatar:{
         type:String,
         default:'https://res.cloudinary.com/duong1310/image/upload/v1666660558/Home/avatar/default_enq4bq.jpg'
@@ -45,6 +55,7 @@ var User= new Schema({
 
 User.pre('save',async function(next){
     try{
+        if(this.authType !=='local') next()
         // generate a salt
         // console.log('password ', this.password);
         const salt= await bcrypt.genSalt(10);
