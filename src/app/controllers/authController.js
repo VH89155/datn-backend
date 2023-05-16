@@ -41,7 +41,7 @@ const authController = {
       })
       if(checkUser)
         return res.status(200).json({ success: false,message:"Bạn đã dùng email này để đăng kí tài khoản khác, hãy kiểm tra lại nhé!" });      
-      const user = await User.findOne({
+        const user = await User.findOne({
         authGoogleID: req.body.sub,
         email:req.body.email,
         authType: "google", })
@@ -98,13 +98,15 @@ const authController = {
         password: password,
       });
       console.log("new User", newUser);
-      await newUser.save((err, user) => {
+       newUser.save(async (err, user) => {
         if (err) {
           console.log("error", err);
         } else {
           console.log("success", user);
           const token = encodeToken(user._id);
+          
           res.setHeader("Authorization", token);
+          await sendEmail(newUser.email, "Đăng ký tài khoản thành công", "Cảm ơn bạn đã đăng ký tài khoản CSV thành công. Chúc bạn có những trải nhiệm vui vẻ cùng CSV");
           return res.status(201).json({ success: true, user: user });
         }
       });

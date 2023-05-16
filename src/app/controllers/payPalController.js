@@ -13,6 +13,7 @@ const payPalController = {
     const info = req.body
     console.log(info)
     const total =  parseFloat(info.price)
+    console.log(total)
     const create_payment_json ={
         "intent": "sale",
         "payer": {
@@ -34,14 +35,14 @@ const payPalController = {
                 "items": [{
                     "name": "item",
                     "sku": info.user,
-                    "price": "10.00",
+                    "price": total.toString(),
                     "currency": "USD",
                     "quantity": 1
                 }]
             },
             "amount": {
                 "currency": "USD",
-                "total": "10.00"
+                "total": total.toString()
             },
             "description": "This is the payment description."
         }]

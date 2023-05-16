@@ -3,7 +3,7 @@ const Moive = require("../models/Moive");
 const Bluebird = require("bluebird");
 const Room = require("../models/Room");
 const Ticket = require("../models/Ticket");
-
+const Combo = require("../models/Combo");
 
 
 const showTimeController = {
@@ -32,7 +32,7 @@ const showTimeController = {
           // res.status(200).json("Ok")
         } else if (time.getTime() < premiere_date.getTime()) {
           console.log("Loi", time.getTime() - premiere_date.getTime());
-          statusError = "Lỗi ngày chiếu";
+          statusError = "Lỗi: Lịch chiếu phải lớn hơn ngày chiếu";
           // res.status(200).json("Loi ngay chieu");
         }
       }
@@ -43,7 +43,7 @@ const showTimeController = {
           const array = moiveRoom.filter((item) => {
             const timeItem = new Date(item.time);
             if (Math.abs(time.getTime() - timeItem.getTime()) < 14400000) {
-              console.log("Loi Room");
+              console.log("Loi: Room");
               return true;
             } else if (Math.abs(time.getTime() - timeItem.getTime()) > 14400000)
               return false;
@@ -60,7 +60,7 @@ const showTimeController = {
               .save()
               .then((data) => (statusSucsses = data));
           } else if (array.length > 0) {
-            statusError = "Lỗi phòng chiếu hiện đang được sử dụng";
+            statusError = "Lỗi: phòng chiếu hiện đang được sử dụng";
           }
         }
       }
@@ -178,7 +178,25 @@ const showTimeController = {
       return {
          moive: await Moive.findById(data.moive).lean(),
          room : await Room.findById(data.room).lean(),
-         ticket: await Ticket.find({time :{$in: id} }).lean(),
+         ticket: await Ticket.find({time :{$in: id} }).lean().then( async(data)=>{
+            return await Bluebird.map((data), async(item)=>{
+
+              return {
+                 ...item,
+                 combo:  await Bluebird.map(item.combo, async(item)=>{
+                  const combo = await Combo.findById(item.id).lean()
+                  // console.log( "combo",combo)
+                  return{
+                    id : item.id,
+                    name: combo.name,
+                    value: item.value,
+                  }
+              }, { concurrency: item.combo.length}) ?? null,
+        
+              }
+        
+             },{ concurrency: data.length})   
+         }),
          showTime : data
 
       }

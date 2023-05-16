@@ -44,6 +44,8 @@ const TicketSchema = new Schema({
         type:Boolean,
         default:false
     }
+
+
     
 
 
