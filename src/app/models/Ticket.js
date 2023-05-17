@@ -36,6 +36,11 @@ const TicketSchema = new Schema({
         default:null
         
     },
+    discount:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref:'Discount',
+        default:null
+    },
     status:{
         type:Boolean,
         default:false
@@ -43,6 +48,12 @@ const TicketSchema = new Schema({
     cancel:{
         type:Boolean,
         default:false
+    },
+    vote:{
+       
+            type:Boolean,
+            default:false
+        
     }
 
 

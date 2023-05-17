@@ -56,6 +56,11 @@ const movieSchema = new Schema({
 
     },
 
+    display_technology:{
+        type: String,
+        default: "2D",
+    },
+
     // xuat xu
     origin:{
         type: String,

@@ -20,7 +20,7 @@ const payPalController = {
             "payment_method": "paypal"
         },
         "redirect_urls": {
-            "return_url": `http://localhost:3000/default/payment-succes?user=${info.user}&time=${info.time}&number=${
+            "return_url": `http://localhost:3000/default/payment-succes?user=${info.user}&giamgia=${info.ma_giam_gia}&time=${info.time}&number=${
               info.number.map( (item,index)=>{if(index !== info.number.length -1)return `${item},`
               else if(index === info.number.length -1)
                 return `${item}`

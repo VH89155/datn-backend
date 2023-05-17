@@ -7,6 +7,7 @@ const User = require("../models/User");
 const Combo = require("../models/Combo");
 const QRCode = require('qrcode');
 const sendEmail = require("../../config/email/sendEmail");
+const Discount = require("../models/Discount");
 
 const getAlllTicketQuery = async(query)=>{
 
@@ -57,12 +58,13 @@ const getAlllTicketQuery = async(query)=>{
                          return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
                        }),
                      number: item.number,
+                     discount: await Discount.findById(item.discount).lean(),
                      price: item.price,
                      payment: item.payment ?? null,
                      cancel: item.cancel,
                      status: item.status,
                    
-                     combo:  await Bluebird.map(item.combo, async(item)=>{
+                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                          const combo = await Combo.findById(item.id).lean()
                          console.log( "combo",combo)
                          return{
@@ -70,7 +72,7 @@ const getAlllTicketQuery = async(query)=>{
                            name: combo.name,
                            value: item.value,
                          }
-                     }, { concurrency: item.combo.length}) ?? null,
+                     }, { concurrency: item.combo.length}) : null,
                      maQR:  qr,
                     
                    };
@@ -135,11 +137,12 @@ const getAlllTicketQuery = async(query)=>{
                      payment: item.payment ?? null,
                      cancel: item.cancel,
                      status: item.status,
+                     discount: await Discount.findById(item.discount).lean(),
                      
                     updatedAt: item.updatedAt,
 
                    
-                     combo:  await Bluebird.map(item.combo, async(item)=>{
+                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                          const combo = await Combo.findById(item.id).lean()
                          console.log( "combo",combo)
                          return{
@@ -147,7 +150,7 @@ const getAlllTicketQuery = async(query)=>{
                            name: combo.name,
                            value: item.value,
                          }
-                     }, { concurrency: item.combo.length}) ?? null,
+                     }, { concurrency: item.combo.length}) : null,
                      maQR:  qr,
                     
                    };
@@ -188,6 +191,7 @@ const getAlllTicketQuery = async(query)=>{
                  return {
                      tiketID: item._id,
                      updatedAt: item.updatedAt,
+                     discount: await Discount.findById(item.discount).lean(),
                      showTime: await ShowTime.findById(item.time)
                        .lean()
                        .then(async (data) => {
@@ -208,7 +212,7 @@ const getAlllTicketQuery = async(query)=>{
                      cancel: item.cancel,
                      status: item.status,
                    
-                     combo:  await Bluebird.map(item.combo, async(item)=>{
+                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                          const combo = await Combo.findById(item.id).lean()
                          console.log( "combo",combo)
                          return{
@@ -216,7 +220,7 @@ const getAlllTicketQuery = async(query)=>{
                            name: combo.name,
                            value: item.value,
                          }
-                     }, { concurrency: item.combo.length}) ?? null,
+                     }, { concurrency: item.combo.length}) : null,
                      maQR:  qr,
                     
                    };
@@ -281,8 +285,9 @@ const getAlllTicketQuery = async(query)=>{
                      payment: item.payment ?? null,
                      cancel: item.cancel,
                      status: item.status,
+                     discount: await Discount.findById(item.discount).lean(),
                    
-                     combo:  await Bluebird.map(item.combo, async(item)=>{
+                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                          const combo = await Combo.findById(item.id).lean()
                          console.log( "combo",combo)
                          return{
@@ -290,7 +295,7 @@ const getAlllTicketQuery = async(query)=>{
                            name: combo.name,
                            value: item.value,
                          }
-                     }, { concurrency: item.combo.length}) ?? null,
+                     }, { concurrency: item.combo.length}) : null,
                      maQR:  qr,
                     
                    };
@@ -329,6 +334,7 @@ const ticket = async(ticketID)=>{
         user: await User.findById(ticket.user).lean().then((data)=>{
             return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
           }),
+         discount: await Discount.findById(ticket.discount).lean(),
         number: ticket.number,
         price: ticket.price,
         payment: ticket.payment ?? null,
@@ -348,28 +354,41 @@ const ticketController = {
     try {
       const timeNow = new Date()
       const infoTicket = req.body;
+      console.log(infoTicket)
       const showtime = await ShowTime.findById(infoTicket.time).lean()
       const timeShow = new Date(showtime.time)
       if(timeNow.getTime() >  timeShow.getTime() + 1800000) return res.status(404).json({ error: error });
-      console.log(infoTicket);
+      // console.log(infoTicket);
       const ISticket = await Ticket.findOne({paymentId: infoTicket.paymentId});
+      
+      console.log(ISticket)
       if(!ISticket){
       const newTicket = new Ticket(infoTicket);
-      const ticket = await newTicket.save().then(async(data)=>{
+       await newTicket.save().then(async(data)=>{
+        const discount = await Discount.findById(data.discount).lean()
+        if(discount){await Discount.findByIdAndDelete(data.discount,{
+          $set:{
+            quanity: discount.quanity -1 
+          }
+        })}
+        console.log(data);
         const user = await User.findById(data.user).lean()
         const link ="Cảm ơn bạn đã mua vé thành CSV, chi tiết vé vui lòng xem trong mục: Vé của bạn"
         console.log(link)
         await sendEmail(user.email, "Mua vé thành công", link);
+        res.status(200).json({ success: true});
       })
+      
      
-      console.log(ticket);
-      res.status(200).json({ticket, success: true});
+      
+     
       }
       else if(ISticket)
-      res.status(200).json({success: false})
+     return   res.status(200).json({success: false})
       
     } catch (error) {
-      res.status(404).json({ error: error });
+      console.log(error)
+      return   res.status(404).json({ error: error });
     }
   },
   getAllTicketUserID: async (req, res) => {
@@ -410,31 +429,35 @@ const ticketController = {
                           .then(async (data) => {
                             return {
                               time: data.time,
+                              status: data.status,
                               moive: await Moive.findById(data.moive).lean().then((data)=>{
-                                return {name: data.name, images: data.images, ages:data.ages}
+                                return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
                               }),
                               room: await Room.findById(data.room).lean(),
+                             
                             };
                           }),
                         user: await User.findById(item.user).lean().then((data)=>{
-                            return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                            return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
                           }),
                         number: item.number,
                         price: item.price,
                         payment: item.payment ?? null,
                         cancel: item.cancel,
                         status: item.status,
+                        discount: await Discount.findById(item.discount).lean(),
                       
-                        combo:  await Bluebird.map(item.combo, async(item)=>{
+                        combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                             const combo = await Combo.findById(item.id).lean()
-                            console.log( "combo",combo)
+                           
                             return{
                               id : combo._id,
                               name: combo.name,
                               value: item.value,
                             }
-                        }, { concurrency: item.combo.length}) ?? null,
+                        }, { concurrency: item.combo.length}) :null ,
                         maQR:  qr,
+                        vote: item.vote
                        
                       };
                 }, { concurrency: data.length})
@@ -455,7 +478,7 @@ const ticketController = {
 
       return {
          ...item,
-         combo:  await Bluebird.map(item.combo, async(item)=>{
+         combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
           const combo = await Combo.findById(item.id).lean()
           console.log( "combo",combo)
           return{
@@ -463,7 +486,7 @@ const ticketController = {
             name: combo.name,
             value: item.value,
           }
-      }, { concurrency: item.combo.length}) ?? null,
+      }, { concurrency: item.combo.length}) : null,
 
       }
 
@@ -518,8 +541,9 @@ accuracyTicket:  async(req,res)=>{
 
  // Yêu cầu hủy vé.
  cancelTicket:  async(req,res)=>{
+  console.log(req.params.query)
   try {
- 
+   
     const _id = req.params.query
     const ticket = await Ticket.findById(_id).lean()
     if(ticket) {
@@ -528,9 +552,9 @@ accuracyTicket:  async(req,res)=>{
           cancel: true,
         }
       })
-      res.status(200).json({success: true});
+     return res.status(200).json({success: true});
     }     
-    res.status(404).json({ error: error });
+   return res.status(404).json({ error: error });
   } catch (error) {
     res.status(404).json({ error: error });
   }

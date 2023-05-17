@@ -5,11 +5,26 @@ const Room = require("../models/Room");
 const Ticket = require("../models/Ticket");
 const Combo = require("../models/Combo");
 
+let timeNow = new Date();
+
 
 const showTimeController = {
   getAllShowTime: async (req, res) => {
     try {
-   const showTime = await ShowTime.find();
+      
+      await ShowTime.find().then( async(data)=>{
+        data.map(async(item)=>{
+          const time = new Date(item.time)
+          if(time.getTime() + 14400000  < timeNow.getTime()){
+             await ShowTime.findByIdAndUpdate(item._id,{
+                $set :{
+                  status: true
+                }
+              })
+          }
+        })
+      });
+      const showTime = await ShowTime.find()
       console.log(showTime[1].time.getHours());
       res.status(200).json({ showTime });
     } catch (err) {
@@ -25,6 +40,10 @@ const showTimeController = {
       time = new Date(time);
       console.log(time.getHours());
       const moive = await Moive.findById(moiveId);
+      const room = await Room.findById(roomId);
+      if(time.getTime()<timeNow.getTime()) {
+        statusError = "Thời gian chiếu không thể là lịch sử";
+      }
       if (moive) {
         const premiere_date = new Date(moive.premiere_date);
         if (time.getTime() >= premiere_date.getTime()) {
@@ -36,7 +55,9 @@ const showTimeController = {
           // res.status(200).json("Loi ngay chieu");
         }
       }
-
+      if(moive.display_technology !== room.category){
+        statusError = "Lỗi: kiểu phòng chiếu không thích hợp với bộ phim này";
+      }
       if (statusError === "" && roomId) {
         const moiveRoom = await ShowTime.find({ room: { $in: roomId } }).lean();
         if (moiveRoom) {
@@ -64,6 +85,7 @@ const showTimeController = {
           }
         }
       }
+     
 
       
       res.status(200).json({ statusError, statusSucsses });
@@ -82,6 +104,9 @@ const showTimeController = {
       time = new Date(time);
       console.log(time.getHours());
       const moive = await Moive.findById(moiveId);
+      if(time.getTime()<timeNow.getTime()) {
+        statusError = "Thời gian chiếu không thể là lịch sử";
+      }
       if (moive) {
         const premiere_date = new Date(moive.premiere_date);
         if (time.getTime() >= premiere_date.getTime()) {
@@ -135,6 +160,24 @@ const showTimeController = {
       res.status(401).json(err);
     }
   },
+
+  deleteShowTime: async (req,res,next)=>{
+    try {
+      const deleted = await ShowTime.delete({ _id:{$in: req.params.id}}).then(async()=>{
+        const arrayTickets = await Ticket.find().lean()
+        arrayTickets.map(async(item)=>{
+         await Ticket.delete({ time: {$in:req.params.id }})
+        })
+     })
+      
+      res.status(200).json({success:true,status:"Deleted success !"});
+     
+    } catch (error) {
+      console.log(error);
+      res.status(401).json(error);
+    }
+  },
+
   getShowTimeMoiveId: async (req, res) => {
     console.log(req.body);
     try {
@@ -173,7 +216,7 @@ const showTimeController = {
   getShowTimeId : async(req,res)=>{
     try {
       const id = req.params.showtimeId
-      
+      console.log(id)
      const showTime=  await ShowTime.findById(id).lean().then(async(data)=>{
       return {
          moive: await Moive.findById(data.moive).lean(),
@@ -183,7 +226,7 @@ const showTimeController = {
 
               return {
                  ...item,
-                 combo:  await Bluebird.map(item.combo, async(item)=>{
+                 combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
                   const combo = await Combo.findById(item.id).lean()
                   // console.log( "combo",combo)
                   return{
@@ -191,7 +234,7 @@ const showTimeController = {
                     name: combo.name,
                     value: item.value,
                   }
-              }, { concurrency: item.combo.length}) ?? null,
+              }, { concurrency: item.combo.length})  : null,
         
               }
         

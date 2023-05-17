@@ -11,7 +11,11 @@ const roomSchema = new Schema({
     status:{
         type:Boolean,
         default:true,
-    }     
+    },  
+    category:{
+        type: String,
+        default:"2D"
+    }   
 
 },{timestamps:true});
 

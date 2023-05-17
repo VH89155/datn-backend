@@ -2,6 +2,7 @@ const Moive = require("../models/Moive");
 const ShowTime = require("../models/ShowTime");
 const Room = require("../models/Room");
 const Bluebird = require("bluebird");
+const Discount = require("../models/Discount");
 
 let timeNow = new Date();
 timeNow.setHours(0);
@@ -105,6 +106,7 @@ const moiveController = {
         director: req.body.director,
         performer: req.body.performer,
         age: req.body.age,
+        display_technology: req.body.display_technology,
         images: req.body.file,
         trailer: req.body.trailer,
         rating: req.body.rating,
@@ -112,7 +114,7 @@ const moiveController = {
         category: req.body.category,
         description: req.body.description,
       });
-      const moive = await newMoive.save();
+      const moive = await newMoive.save()
       // console.log(moive);
       res.status(200).json(moive);
     } catch (err) {
@@ -314,6 +316,7 @@ const moiveController = {
         trailer,
         origin,
         director,
+        display_technology,
         time,
         rating,
       } = { ...req.body };
@@ -327,6 +330,7 @@ const moiveController = {
           images,
           performer,
           premiere_date,
+          display_technology,
           trailer,
           origin,
           director,

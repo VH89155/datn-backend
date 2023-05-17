@@ -12,5 +12,6 @@ router.post("/", showTimeController.createShowTime);
 router.put("/", showTimeController.editShowTime)
 router.get("/:moiveId", showTimeController.getShowTimeMoiveId);
 router.get("/show/:showtimeId", showTimeController.getShowTimeId);
+router.delete('/:id',showTimeController.deleteShowTime);
 
 module.exports = router;

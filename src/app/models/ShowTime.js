@@ -18,6 +18,10 @@ const showTimeSchema = new Schema({
     time:{
         type:Date,
         required:true,
+    },
+    status:{
+        type:Boolean,
+        default:false
     }     
 
 },{timestamps:true});
