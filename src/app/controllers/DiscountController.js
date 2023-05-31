@@ -60,6 +60,17 @@ const discountController ={
         }
     },
 
+    getDiscountIDAdmin: async(req, res)=>{
+        try {
+            const data = await Discount.findById(req.params.id).lean()
+            
+            res.status(200).json({success: "success", discounts:data})
+        } catch (error) {
+            res.status(401).json({message: error})
+            
+        }
+    },
+
 
 
     getAllDiscount: async(req, res)=>{

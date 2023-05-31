@@ -12,7 +12,7 @@ const payPalController = {
   thanhToanPay: async (req, res) => {
     const info = req.body
     console.log(info)
-    const total =  parseFloat(info.price)
+    const total =  parseFloat(Math.round(info.price * 100/23000) / 100)
     console.log(total)
     const create_payment_json ={
         "intent": "sale",
@@ -27,7 +27,11 @@ const payPalController = {
                 } )}&price=${info.price}&combo=${info.combo.map((item,index)=>{if(index !== info.combo.length -1)
                 return `${item.id},${item.value}-`
                 else if(index === info.combo.length -1)
-                return `${item.id},${item.value}`})}`,
+                return `${item.id},${item.value}`})}&veChon=${info.ve_chon.map(((item,index)=>{
+                  if(index !== info.ve_chon.length -1) return `${item._id},${item.name},${item.price}-`
+                  else if(index === info.ve_chon.length -1) return `${item._id},${item.name},${item.price}`
+                }))}`,
+
               "cancel_url": "http://localhost:8080/api/paypal/cancel"
         },
         "transactions": [{

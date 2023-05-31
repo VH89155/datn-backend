@@ -8,308 +8,468 @@ const Combo = require("../models/Combo");
 const QRCode = require('qrcode');
 const sendEmail = require("../../config/email/sendEmail");
 const Discount = require("../models/Discount");
+const Bill = require("../models/Bill");
+const DetailCombo = require("../models/DetailCombo");
+const DetailTicket = require("../models/DetailTicket");
 
 const getAlllTicketQuery = async(query)=>{
 
  //  0 = chưa xác nhận, 1 === xác nhận, 2=Chờ hủy, 3  === đã hủy   
   if(query ==="0"){
-   let ticket =  await Ticket.find({ status: false, cancel:false })
-     .lean()
-     .then(async (data) => {
-             const array1 = await Bluebird.map(data, async(item)=>{
-               const ticket = `
-                 \nid: ${item._id},
-                 \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
-                   return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
-                 )},
-                 \nLịch chiếu:  ${await ShowTime.findById(item.time)
-                   .lean()
-                   .then(async (data) => {
-                     return `
-                       \n\tThời gian: ${data.time},
-                       \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })},
-                       \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })}
-                     `;
-                   })} ,
-                 \nRạp phim: CSV
-               `
-               let qr = await QRCode.toDataURL(`${ticket}`)
-                 // console.log(qr);
-                 
-                 return {
-                     tiketID: item._id,
-                     showTime: await ShowTime.findById(item.time)
-                       .lean()
-                       .then(async (data) => {
-                         return {
-                           time: data.time,
-                           updatedAt: item.updatedAt,
-                           moive: await Moive.findById(data.moive).lean().then((data)=>{
-                             return {name: data.name, images: data.images, ages:data.ages}
-                           }),
-                           room: await Room.findById(data.room).lean(),
-                         };
-                       }),
-                     user: await User.findById(item.user).lean().then((data)=>{
-                         return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
-                       }),
-                     number: item.number,
-                     discount: await Discount.findById(item.discount).lean(),
-                     price: item.price,
-                     payment: item.payment ?? null,
-                     cancel: item.cancel,
-                     status: item.status,
-                   
-                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-                         const combo = await Combo.findById(item.id).lean()
-                         console.log( "combo",combo)
-                         return{
-                           id : combo._id,
-                           name: combo.name,
-                           value: item.value,
-                         }
-                     }, { concurrency: item.combo.length}) : null,
-                     maQR:  qr,
-                    
-                   };
-             }, { concurrency: data.length})
- 
-       // console.log(array1)
-       return array1;
-     });  
+  
+  
+   
+  return await Bill.find({ status: false, cancel:false }).lean().then(async(data)=>{
 
-   ticket.sort((a,b)=>{
-    if (a.updatedAt > b.updatedAt) return 1;
-    if (a.updatedAt < b.updatedAt) return -1;
-   })  
-   return ticket
-   }
-   if(query ==="1"){
-    return  await Ticket.find({ status: true, cancel:false })
-     .lean()
-     .then(async (data) => {
-             const array1 = await Bluebird.map(data, async(item)=>{
-               const ticket = `
-                 \nid: ${item._id},
-                 \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
-                   return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
-                 )},
-                 \nLịch chiếu:  ${await ShowTime.findById(item.time)
-                   .lean()
-                   .then(async (data) => {
-                     return `
-                       \n\tThời gian: ${data.time},
-                       \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })},
-                       \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })}
-                     `;
-                   })} ,
-                 \nRạp phim: CSV
-               `
-               let qr = await QRCode.toDataURL(`${ticket}`)
-                 // console.log(qr);
-                 
-                 return {
-                     tiketID: item._id,
-                     showTime: await ShowTime.findById(item.time)
-                       .lean()
-                       .then(async (data) => {
-                         return {
-                           time: data.time,
-                           moive: await Moive.findById(data.moive).lean().then((data)=>{
-                             return {name: data.name, images: data.images, ages:data.ages}
-                           }),
-                           room: await Room.findById(data.room).lean(),
-                         };
-                       }),
-                     user: await User.findById(item.user).lean().then((data)=>{
-                         return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
-                       }),
-                     number: item.number,
-                     price: item.price,
-                     payment: item.payment ?? null,
-                     cancel: item.cancel,
-                     status: item.status,
-                     discount: await Discount.findById(item.discount).lean(),
+    const details = await Bluebird.map(data, async(item)=>{
+
+      const isTicket = await Ticket.findById(item.ticket).lean()
+          console.log(isTicket.status)
+          if(isTicket.status !== true)
+      // console.log("bill", item)
+        return {
+          _id: item._id,
+          updatedAt: item.updatedAt,
+          ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+            const ticket = `
+            \nid: ${item._id},
+            \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+              return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+            )},
+            \nLịch chiếu:  ${await ShowTime.findById(item.time)
+              .lean()
+              .then(async (data) => {
+                return `
+                  \n\tThời gian: ${data.time},
+                  \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                    return `  ${data.name}`
+                  })},
+                  \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                    return `  ${data.name}`
+                  })}
+                `;
+              })} ,
+            \nRạp phim: CSV
+          `
+          let qr = await QRCode.toDataURL(`${ticket}`)                              
+            return {
+                tiketID: item._id,
+                showTime: await ShowTime.findById(item.time)
+                  .lean()
+                  .then(async (data) => {
+                    return {
+                      time: data.time,
+                      status: data.status,
+                      moive: await Moive.findById(data.moive).lean().then((data)=>{
+                        return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                      }),
+                      room: await Room.findById(data.room).lean(),
                      
-                    updatedAt: item.updatedAt,
+                    };
+                  }),
+                user: await User.findById(item.user).lean().then((data)=>{
+                    return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                  }),
+                number: item.number,
+             
+                cancel: item.cancel,
+                status: item.status,                     
+                maQR:  qr,
+                vote: item.vote
+               
+              };
+          }),
+          price: item.price,
+          payment: item.payment ?? null,
+          discount: await Discount.findById(item.discount).lean(),
+          combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+            console.log("detail", detail)
+            const combos=  await Bluebird.map(detail, (async(item1)=>{
+                const combo = await Combo.findById(item1.combo).lean()
+                return{
+                  value: item1.quantity,
+                  id: combo._id,
+                  name: combo.name
+                }
+                
+             }) ,{concurrency: detail.length})
+             return combos
 
-                   
-                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-                         const combo = await Combo.findById(item.id).lean()
-                         console.log( "combo",combo)
-                         return{
-                           id : combo._id,
-                           name: combo.name,
-                           value: item.value,
-                         }
-                     }, { concurrency: item.combo.length}) : null,
-                     maQR:  qr,
-                    
-                   };
-             }, { concurrency: data.length})
- 
-       // console.log(array1)
-       return array1;
-     });  
+            
+          })
+      
+  }
+  if(isTicket.status === true) return false
+},{concurrency: data.length})
+      return details
+     
+  })
+
+
+}
+
+
+   if(query ==="1"){
+    
+    
+     
+
+     return await Bill.find({ status:true, cancel:false }).lean().then(async(data)=>{
+
+      const details = await Bluebird.map(data, async(item)=>{
+        const isTicket = await Ticket.findById(item.ticket).lean()
+        console.log(isTicket.status)
+        if(isTicket.status !== true)
+     
+        // console.log("bill", item)
+          return {
+            _id: item._id,
+            updatedAt: item.updatedAt,
+            ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+              const ticket = `
+              \nid: ${item._id},
+              \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+              )},
+              \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                .lean()
+                .then(async (data) => {
+                  return `
+                    \n\tThời gian: ${data.time},
+                    \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                      return `  ${data.name}`
+                    })},
+                    \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                      return `  ${data.name}`
+                    })}
+                  `;
+                })} ,
+              \nRạp phim: CSV
+            `
+            let qr = await QRCode.toDataURL(`${ticket}`)                              
+              return {
+                  tiketID: item._id,
+                  showTime: await ShowTime.findById(item.time)
+                    .lean()
+                    .then(async (data) => {
+                      return {
+                        time: data.time,
+                        status: data.status,
+                        moive: await Moive.findById(data.moive).lean().then((data)=>{
+                          return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                        }),
+                        room: await Room.findById(data.room).lean(),
+                       
+                      };
+                    }),
+                  user: await User.findById(item.user).lean().then((data)=>{
+                      return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                    }),
+                  number: item.number,
+               
+                  cancel: item.cancel,
+                  status: item.status,                     
+                  maQR:  qr,
+                  vote: item.vote
+                 
+                };
+            }),
+            price: item.price,
+            payment: item.payment ?? null,
+            discount: await Discount.findById(item.discount).lean(),
+            combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+              console.log("detail", detail)
+              const combos=  await Bluebird.map(detail, (async(item1)=>{
+                  const combo = await Combo.findById(item1.combo).lean()
+                  return{
+                    value: item1.quantity,
+                    id: combo._id,
+                    name: combo.name
+                  }
+                  
+               }) ,{concurrency: detail.length})
+               return combos
+  
+              
+            })
+        
+    } 
+    if(isTicket.status !== true) return false
+  },{concurrency: data.length})
+        return details
+       
+    })
    } 
    if(query ==="2"){
-    let ticket= await Ticket.find({ cancel:true })
-     .lean()
-     .then(async (data) => {
-             const array1 = await Bluebird.map(data, async(item)=>{
-               const ticket = `
-                 \nid: ${item._id},
-                 \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
-                   return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
-                 )},
-                 \nLịch chiếu:  ${await ShowTime.findById(item.time)
-                   .lean()
-                   .then(async (data) => {
-                     return `
-                       \n\tThời gian: ${data.time},
-                       \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })},
-                       \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })}
-                     `;
-                   })} ,
-                 \nRạp phim: CSV
-               `
-               let qr = await QRCode.toDataURL(`${ticket}`)
-                 // console.log(qr);
+   
+    return await Bill.find({ cancel:true }).lean().then(async(data)=>{
+
+      const details = await Bluebird.map(data, async(item)=>{
+  
+  
+        // console.log("bill", item)
+        // const isTicket = await Ticket.findById(item.ticket).lean()
+        // console.log(isTicket.status)
+        // if(isTicket.status !== true)
+          return {
+            _id: item._id,
+            ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+              const ticket = `
+              \nid: ${item._id},
+              \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+              )},
+              \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                .lean()
+                .then(async (data) => {
+                  return `
+                    \n\tThời gian: ${data.time},
+                    \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                      return `  ${data.name}`
+                    })},
+                    \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                      return `  ${data.name}`
+                    })}
+                  `;
+                })} ,
+              \nRạp phim: CSV
+            `
+            let qr = await QRCode.toDataURL(`${ticket}`)                              
+              return {
+                  tiketID: item._id,
+                  showTime: await ShowTime.findById(item.time)
+                    .lean()
+                    .then(async (data) => {
+                      return {
+                        time: data.time,
+                        status: data.status,
+                        moive: await Moive.findById(data.moive).lean().then((data)=>{
+                          return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                        }),
+                        room: await Room.findById(data.room).lean(),
+                       
+                      };
+                    }),
+                  user: await User.findById(item.user).lean().then((data)=>{
+                      return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                    }),
+                  number: item.number,
+               
+                  cancel: item.cancel,
+                  status: item.status,                     
+                  maQR:  qr,
+                  vote: item.vote
                  
-                 return {
-                     tiketID: item._id,
-                     updatedAt: item.updatedAt,
-                     discount: await Discount.findById(item.discount).lean(),
-                     showTime: await ShowTime.findById(item.time)
-                       .lean()
-                       .then(async (data) => {
-                         return {
-                           time: data.time,
-                           moive: await Moive.findById(data.moive).lean().then((data)=>{
-                             return {name: data.name, images: data.images, ages:data.ages}
-                           }),
-                           room: await Room.findById(data.room).lean(),
-                         };
-                       }),
-                     user: await User.findById(item.user).lean().then((data)=>{
-                         return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
-                       }),
-                     number: item.number,
-                     price: item.price,
-                     payment: item.payment ?? null,
-                     cancel: item.cancel,
-                     status: item.status,
-                   
-                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-                         const combo = await Combo.findById(item.id).lean()
-                         console.log( "combo",combo)
-                         return{
-                           id : combo._id,
-                           name: combo.name,
-                           value: item.value,
-                         }
-                     }, { concurrency: item.combo.length}) : null,
-                     maQR:  qr,
-                    
-                   };
-             }, { concurrency: data.length})
- 
-       // console.log(array1)
-       return array1;
-     }); 
-     ticket.sort((a,b)=>{
-      if (a.updatedAt > b.updatedAt) return 1;
-      if (a.updatedAt < b.updatedAt) return -1;
-     })  
-     return ticket 
+                };
+            }),
+            updatedAt: item.updatedAt,
+            price: item.price,
+            payment: item.payment ?? null,
+            discount: await Discount.findById(item.discount).lean(),
+            combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+              console.log("detail", detail)
+              const combos=  await Bluebird.map(detail, (async(item1)=>{
+                  const combo = await Combo.findById(item1.combo).lean()
+                  return{
+                    value: item1.quantity,
+                    id: combo._id,
+                    name: combo.name
+                  }
+                  
+               }) ,{concurrency: detail.length})
+               return combos
+  
+              
+            })
+        
+    }
+    // if(isTicket.status === true) return false
+  },{concurrency: data.length})
+        return details
+       
+    })
    } 
    if(query ==="3"){
-   let ticket=  await Ticket.findDeleted()
-     .lean()
-     .then(async (data) => {
-             const array1 = await Bluebird.map(data, async(item)=>{
-               const ticket = `
-                 \nid: ${item._id},
-                 \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
-                   return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
-                 )},
-                 \nLịch chiếu:  ${await ShowTime.findById(item.time)
-                   .lean()
-                   .then(async (data) => {
-                     return `
-                       \n\tThời gian: ${data.time},
-                       \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })},
-                       \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
-                         return `  ${data.name}`
-                       })}
-                     `;
-                   })} ,
-                 \nRạp phim: CSV
-               `
-               let qr = await QRCode.toDataURL(`${ticket}`)
-                 // console.log(qr);
-                 
-                 return {
-                     tiketID: item._id,
-                     showTime: await ShowTime.findById(item.time)
-                       .lean()
-                       .then(async (data) => {
-                         return {
-                           time: data.time,
-                           moive: await Moive.findById(data.moive).lean().then((data)=>{
-                             return {name: data.name, images: data.images, ages:data.ages}
-                           }),
-                           room: await Room.findById(data.room).lean(),
-                         };
-                       }),
-                     user: await User.findById(item.user).lean().then((data)=>{
-                         return {username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
-                       }),
-                     number: item.number,
-                     price: item.price,
-                     updatedAt: item.updatedAt,
-                     payment: item.payment ?? null,
-                     cancel: item.cancel,
-                     status: item.status,
-                     discount: await Discount.findById(item.discount).lean(),
-                   
-                     combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-                         const combo = await Combo.findById(item.id).lean()
-                         console.log( "combo",combo)
-                         return{
-                           id : combo._id,
-                           name: combo.name,
-                           value: item.value,
-                         }
-                     }, { concurrency: item.combo.length}) : null,
-                     maQR:  qr,
-                    
-                   };
-             }, { concurrency: data.length})
- 
-       // console.log(array1)
-       return array1;
-     });
-     ticket.sort((a,b)=>{
-      if (a.updatedAt > b.updatedAt) return 1;
-      if (a.updatedAt < b.updatedAt) return -1;
-     })  
-     return ticket  
+  
+  return await Bill.findDeleted({ status: false, cancel:false }).lean().then(async(data)=>{
+
+    const details = await Bluebird.map(data, async(item)=>{
+
+
+     
+      // console.log("bill", item)
+      // const isTicket = await Ticket.findById(item.ticket).lean()
+      // console.log(isTicket.status)
+      // if(isTicket.status !== true)
+        return {
+          _id: item._id,
+          updatedAt:item.updatedAt,
+          ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+            const ticket = `
+            \nid: ${item._id},
+            \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+              return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+            )},
+            \nLịch chiếu:  ${await ShowTime.findById(item.time)
+              .lean()
+              .then(async (data) => {
+                return `
+                  \n\tThời gian: ${data.time},
+                  \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                    return `  ${data.name}`
+                  })},
+                  \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                    return `  ${data.name}`
+                  })}
+                `;
+              })} ,
+            \nRạp phim: CSV
+          `
+          let qr = await QRCode.toDataURL(`${ticket}`)                              
+            return {
+                tiketID: item._id,
+                showTime: await ShowTime.findById(item.time)
+                  .lean()
+                  .then(async (data) => {
+                    return {
+                      time: data.time,
+                      status: data.status,
+                      moive: await Moive.findById(data.moive).lean().then((data)=>{
+                        return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                      }),
+                      room: await Room.findById(data.room).lean(),
+                     
+                    };
+                  }),
+                user: await User.findById(item.user).lean().then((data)=>{
+                    return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                  }),
+                number: item.number,
+             
+                cancel: item.cancel,
+                status: item.status,                     
+                maQR:  qr,
+                vote: item.vote
+               
+              };
+          }),
+          price: item.price,
+          payment: item.payment ?? null,
+          discount: await Discount.findById(item.discount).lean(),
+          combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+            console.log("detail", detail)
+            const combos=  await Bluebird.map(detail, (async(item1)=>{
+                const combo = await Combo.findById(item1.combo).lean()
+                return{
+                  value: item1.quantity,
+                  id: combo._id,
+                  name: combo.name
+                }
+                
+             }) ,{concurrency: detail.length})
+             return combos
+
+            
+          })
+      
+  }  
+    // if(isTicket.status === true) return false
+
+},{concurrency: data.length})
+      return details
+     
+  })
    } 
+
+   if(query ==="4"){
+    return await Bill.find({ cancel:false}).lean().then(async(data)=>{
+      {
+        const details = await Bluebird.map(data, async(item)=>{ 
+          const isTicket = await Ticket.findById(item.ticket).lean()
+          console.log(isTicket.status)
+          if(isTicket.status === true)
+            return {
+              _id: item._id,
+              updatedAt:item.updatedAt,
+              ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+                const ticket = `
+                \nid: ${item._id},
+                \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                  return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+                )},
+                \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                  .lean()
+                  .then(async (data) => {
+                    return `
+                      \n\tThời gian: ${data.time},
+                      \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })},
+                      \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })}
+                    `;
+                  })} ,
+                \nRạp phim: CSV
+              `
+              let qr = await QRCode.toDataURL(`${ticket}`)                              
+                return {
+                    tiketID: item._id,
+                    showTime: await ShowTime.findById(item.time)
+                      .lean()
+                      .then(async (data) => {
+                        return {
+                          time: data.time,
+                          status: data.status,
+                          moive: await Moive.findById(data.moive).lean().then((data)=>{
+                            return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                          }),
+                          room: await Room.findById(data.room).lean(),
+                         
+                        };
+                      }),
+                    user: await User.findById(item.user).lean().then((data)=>{
+                        return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                      }),
+                    number: item.number,
+                 
+                    cancel: item.cancel,
+                    status: item.status,                     
+                    maQR:  qr,
+                    vote: item.vote
+                   
+                  };
+              }),
+              price: item.price,
+              payment: item.payment ?? null,
+              discount: await Discount.findById(item.discount).lean(),
+              combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+               
+                const combos=  await Bluebird.map(detail, (async(item1)=>{
+                    const combo = await Combo.findById(item1.combo).lean()
+                    return{
+                      value: item1.quantity,
+                      id: combo._id,
+                      name: combo.name
+                    }
+                    
+                 }) ,{concurrency: detail.length})
+                 return combos
+    
+                
+              })
+          
+      } 
+      else if(isTicket.status !== true)
+       return false
+    },{concurrency: data.length})
+          return details
+      }
+      
+      
+       
+    })
+     } 
    
    
   
@@ -347,30 +507,88 @@ const ticket = async(ticketID)=>{
    return data
  
 }
-
+const timeNow = new Date()
 
 const ticketController = {
   createTicket: async (req, res) => {
     try {
+      
       const timeNow = new Date()
       const infoTicket = req.body;
+      let {user,time,number,price,payment,paymentId,combo,discount,veChon}  = req.body
+     
       console.log(infoTicket)
       const showtime = await ShowTime.findById(infoTicket.time).lean()
       const timeShow = new Date(showtime.time)
       if(timeNow.getTime() >  timeShow.getTime() + 1800000) return res.status(404).json({ error: error });
       // console.log(infoTicket);
-      const ISticket = await Ticket.findOne({paymentId: infoTicket.paymentId});
+      const IsBill = await Bill.findOne({paymentId: infoTicket.paymentId});
       
-      console.log(ISticket)
-      if(!ISticket){
-      const newTicket = new Ticket(infoTicket);
+
+      console.log("veChon:" ,veChon)
+      console.log(IsBill)
+
+      if(!IsBill && discount  !== ""){
+      const newTicket = new Ticket({
+        user:infoTicket.user, 
+        time: time,
+        number: number,
+        price:price, 
+      
+      });
        await newTicket.save().then(async(data)=>{
-        const discount = await Discount.findById(data.discount).lean()
-        if(discount){await Discount.findByIdAndDelete(data.discount,{
-          $set:{
-            quanity: discount.quanity -1 
+        veChon.map(async(item)=>{
+          const detailTicket = new DetailTicket({
+            ticket: data._id,
+            price: item.price,
+            priceTicket: item.id,
+            name: item.name,
+          })
+          detailTicket.save()
+        })
+       const newBill = new Bill({
+          ticket: data._id,
+          user: infoTicket.user,
+          price: price,
+          paymentId: paymentId,
+          payment: payment,        
+          discount: infoTicket.discount
+
+       })
+
+        newBill.save().then(async(data1)=>{
+          console.log(data1)
+          
+          const isCombo = await infoTicket.combo.filter(item=>{
+            if(item.id ===""  || item.value ===0)return false;
+             else return true;
+            
+          })
+          if(isCombo.length > 0){
+            infoTicket.combo.map(async(item)=>{
+              const newDetailCombo = new DetailCombo({
+                combo: item.id,
+                bill: data1._id,
+                quantity: item.value
+  
+              })
+              newDetailCombo.save().then(async(data2)=>{
+                console.log(data2)
+              })
+
+            })
           }
-        })}
+        })
+       
+       
+          const discount = await Discount.findById(data.discount).lean()
+          if(discount){await Discount.findByIdAndUpdate(data.discount,{
+            $set:{
+              quanity: discount.quanity -1 
+            }
+          })}
+       
+      
         console.log(data);
         const user = await User.findById(data.user).lean()
         const link ="Cảm ơn bạn đã mua vé thành CSV, chi tiết vé vui lòng xem trong mục: Vé của bạn"
@@ -380,11 +598,75 @@ const ticketController = {
       })
       
      
-      
-     
       }
-      else if(ISticket)
+      else if(IsBill){
+      
      return   res.status(200).json({success: false})
+    }
+      else if(!IsBill && discount === ""){
+     
+        const newTicket = new Ticket({
+          user:infoTicket.user, 
+          time: time,
+          number: number,
+          price:price, 
+         
+          discount:null
+        });
+         await newTicket.save().then(async(data)=>{
+          veChon.map(async(item)=>{
+            const detailTicket = new DetailTicket({
+              ticket: data._id,
+              price: item.price,
+              priceTicket: item.id,
+              name: item.name,
+            })
+            detailTicket.save()
+          })
+         const newBill = new Bill({
+            ticket: data._id,
+            user: infoTicket.user,
+            price: price,
+            paymentId: paymentId,
+            payment: payment,
+          
+            discount: null
+         })
+          newBill.save().then(async(data1)=>{
+            console.log(data1)
+            const isCombo = await infoTicket.combo.filter(item=>{
+              if(item.id ===""  || item.value ===0)return false;
+              else return true;
+            })
+            console.log("isCombo: " + isCombo)
+            if(isCombo.length > 0){
+              infoTicket.combo.map(async(item)=>{
+                const newDetailCombo = new DetailCombo({
+                  combo: item.id,
+                  bill: data1._id,
+                  quantity: item.value
+    
+                })
+                newDetailCombo.save().then(async(data2)=>{
+                  console.log(data2)
+                })
+  
+              })
+            }
+          })
+          console.log(data);
+          const user = await User.findById(data.user).lean()
+          const link ="Cảm ơn bạn đã mua vé thành CSV, chi tiết vé vui lòng xem trong mục: Vé của bạn"
+          console.log(link)
+          await sendEmail(user.email, "Mua vé thành công", link);
+          res.status(200).json({ success: true});
+        })
+        
+       
+        
+       
+        
+     }
       
     } catch (error) {
       console.log(error)
@@ -392,108 +674,195 @@ const ticketController = {
     }
   },
   getAllTicketUserID: async (req, res) => {
-    // console.log(req.params.userID);
+    console.log(req.params.userID);
     try {
+     
       const userID = req.params.userID;
-      const tickets = await Ticket.find({ user: userID })
-        .lean()
-        .then(async (data) => {
-                const array1 = await Bluebird.map(data, async(item)=>{
-                  const ticket = `
-                    \nid: ${item._id},
-                    \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
-                      return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
-                    )},
-                    \nLịch chiếu:  ${await ShowTime.findById(item.time)
+      
+       
+       await Bill.find({user :userID}).lean().then(async(data)=>{
+
+        const details = await Bluebird.map(data, async(item)=>{
+
+
+          console.log("bill", item)
+            return {
+              status: item.status,
+              cancel: item.cancel,
+              _id: item._id,
+              ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+                const ticket = `
+                \nid: ${item._id},
+                \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                  return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+                )},
+                \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                  .lean()
+                  .then(async (data) => {
+                    return `
+                      \n\tThời gian: ${data.time},
+                      \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })},
+                      \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })}
+                    `;
+                  })} ,
+                \nRạp phim: CSV
+              `
+              let qr = await QRCode.toDataURL(`${ticket}`)                              
+                return {
+                    tiketID: item._id,
+                    showTime: await ShowTime.findById(item.time)
                       .lean()
                       .then(async (data) => {
-                        return `
-                          \n\tThời gian: ${data.time},
-                          \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
-                            return `  ${data.name}`
-                          })},
-                          \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
-                            return `  ${data.name}`
-                          })}
-                        `;
-                      })} ,
-                    \nRạp phim: CSV
-                  `
-                  let qr = await QRCode.toDataURL(`${ticket}`)
-                    // console.log(qr);
+                        return {
+                          time: data.time,
+                          status: data.status,
+                          moive: await Moive.findById(data.moive).lean().then((data)=>{
+                            return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                          }),
+                          room: await Room.findById(data.room).lean(),
+                         
+                        };
+                      }),
+                    user: await User.findById(item.user).lean().then((data)=>{
+                        return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                      }),
+                    number: item.number,
+                 
+                    cancel: item.cancel,
+                    status: item.status,                     
+                    maQR:  qr,
+                    vote: item.vote
+                   
+                  };
+              }),
+              price: item.price,
+              payment: item.payment ?? null,
+              discount: await Discount.findById(item.discount).lean(),
+              combo : await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+                console.log("detail", detail)
+                const combos=  await Bluebird.map(detail, (async(item1)=>{
+                    const combo = await Combo.findById(item1.combo).lean()
+                    return{
+                      value: item1.quantity,
+                      id: combo._id,
+                      name: combo.name
+                    }
                     
-                    return {
-                        tiketID: item._id,
-                        showTime: await ShowTime.findById(item.time)
-                          .lean()
-                          .then(async (data) => {
-                            return {
-                              time: data.time,
-                              status: data.status,
-                              moive: await Moive.findById(data.moive).lean().then((data)=>{
-                                return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
-                              }),
-                              room: await Room.findById(data.room).lean(),
-                             
-                            };
-                          }),
-                        user: await User.findById(item.user).lean().then((data)=>{
-                            return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
-                          }),
-                        number: item.number,
-                        price: item.price,
-                        payment: item.payment ?? null,
-                        cancel: item.cancel,
-                        status: item.status,
-                        discount: await Discount.findById(item.discount).lean(),
-                      
-                        combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-                            const combo = await Combo.findById(item.id).lean()
-                           
-                            return{
-                              id : combo._id,
-                              name: combo.name,
-                              value: item.value,
-                            }
-                        }, { concurrency: item.combo.length}) :null ,
-                        maQR:  qr,
-                        vote: item.vote
-                       
-                      };
-                }, { concurrency: data.length})
+                 }) ,{concurrency: detail.length})
+                 return combos
 
-          // console.log(array1)
-          return array1;
-        });
-      res.status(200).json(tickets);
+                
+              })
+          
+      } },{concurrency: data.length})
+          return details
+         
+      }).then((data)=>{
+        res.status(200).json(data)
+      }).catch((err)=>{
+        console.log(err)
+      })
+      
+      
     } catch (error) {
+      console.log(error)
       res.status(404).json({ error: error });
     }
   },
  getTicketID:  async(req,res)=>{
   try {
-    const tiketID = req.params.tiketID;
-    const data = await ticket(tiketID);
-     const ticket = await Bluebird.map((data), async(item)=>{
+    const billID = req.params.tiketID;
+      
+     await Bill.find({ticket :billID}).lean().then(async(data)=>{
 
-      return {
-         ...item,
-         combo: item.combo[0].id !== "" ? await Bluebird.map(item.combo, async(item)=>{
-          const combo = await Combo.findById(item.id).lean()
-          console.log( "combo",combo)
-          return{
-            id : combo._id,
-            name: combo.name,
-            value: item.value,
-          }
-      }, { concurrency: item.combo.length}) : null,
-
-      }
-
-     },{ concurrency: data.length})       
+        const details = await Bluebird.map(data, async(item)=>{
 
 
-    res.status(200).json({ticket: ticket,id : tiketID});
+          console.log("bill", item)
+            return {
+              ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
+                const ticket = `
+                \nid: ${item._id},
+                \nThông tin người mua: ${await User.findById(item.user).lean().then((data)=>{
+                  return   `\n\temail: ${data.email}, \n\tTên TK: ${data.username}, \n\tTên KH: ${data.fullName}  , \n\tSDT: ${data.phoneNumber}`;} 
+                )},
+                \nLịch chiếu:  ${await ShowTime.findById(item.time)
+                  .lean()
+                  .then(async (data) => {
+                    return `
+                      \n\tThời gian: ${data.time},
+                      \n\tPhim: ${await Moive.findById(data.moive).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })},
+                      \n\tPhòng: ${ await Room.findById(data.room).lean().then((data)=>{
+                        return `  ${data.name}`
+                      })}
+                    `;
+                  })} ,
+                \nRạp phim: CSV
+              `
+              let qr = await QRCode.toDataURL(`${ticket}`)                              
+                return {
+                    tiketID: item._id,
+                    showTime: await ShowTime.findById(item.time)
+                      .lean()
+                      .then(async (data) => {
+                        return {
+                          time: data.time,
+                          status: data.status,
+                          moive: await Moive.findById(data.moive).lean().then((data)=>{
+                            return {_id:data._id, name: data.name, images: data.images, ages:data.ages}
+                          }),
+                          room: await Room.findById(data.room).lean(),
+                         
+                        };
+                      }),
+                    user: await User.findById(item.user).lean().then((data)=>{
+                        return {_id:data._id, username: data.username, email: data.email, fullName: data.fullName,phoneNumber: data.phoneNumber}
+                      }),
+                    number: item.number,
+                 
+                    cancel: item.cancel,
+                    status: item.status,                     
+                    maQR:  qr,
+                    vote: item.vote
+                   
+                  };
+              }),
+              price: item.price,
+              payment: item.payment ?? null,
+              discount: await Discount.findById(item.discount).lean(),
+              combo : item.combo ? await DetailCombo.find({bill: item._id}).lean().then(async(detail)=>{
+                console.log("detail", detail)
+                const combos=  await Bluebird.map(detail, (async(item1)=>{
+                    const combo = await Combo.findById(item1.combo).lean()
+                    return{
+                      value: item1.quantity,
+                      id: combo._id,
+                      name: combo.name
+                    }
+                    
+                 }) ,{concurrency: detail.length})
+                 return combos
+
+                
+              }): null
+          
+      } },{concurrency: data.length})
+          return details
+         
+      }).then((data)=>{
+        res.status(200).json(data)
+      }).catch((err)=>{
+        console.log(err)
+      })
+
+
+    // res.status(200).json({ticket: ticket,id : tiketID});
   } catch (error) {
     res.status(404).json({ error: error });
   }
@@ -501,10 +870,13 @@ const ticketController = {
 
  getAlllTicket:  async(req,res)=>{
   try {
- 
+    
     const query = req.params.query
-    let tickets =await getAlllTicketQuery(query) 
-    res.status(200).json({tickets: tickets});
+    
+    let bills =await getAlllTicketQuery(query) 
+    bills= bills.filter(Boolean)
+    console.log(bills)
+    res.status(200).json({bills: bills});
   } catch (error) {
     res.status(404).json({ error: error });
   }
@@ -518,9 +890,9 @@ accuracyTicket:  async(req,res)=>{
   try {
  
     const _id = req.params.query
-    const ticket = await Ticket.findById(_id).lean()
-    if(ticket) {
-     await Ticket.findByIdAndUpdate(_id,{
+    const bill = await Bill.findById(_id).lean()
+    if(bill) {
+     await Bill.findByIdAndUpdate(_id,{
         $set:{
           status: true,
         }
@@ -545,9 +917,9 @@ accuracyTicket:  async(req,res)=>{
   try {
    
     const _id = req.params.query
-    const ticket = await Ticket.findById(_id).lean()
+    const bill = await Bill.findById(_id).lean()
     if(ticket) {
-    await  Ticket.findByIdAndUpdate(_id,{
+    await  Bill.findByIdAndUpdate(_id,{
         $set:{
           cancel: true,
         }
@@ -565,9 +937,9 @@ accuracyTicket:  async(req,res)=>{
   try {
  
     const _id = req.params.query
-    const ticket = await Ticket.findById(_id).lean()
-    if(ticket) {
-     await Ticket.delete(_id).then(async(data)=>{
+    const bill = await Bill.findById(_id).lean()
+    if(bill) {
+     await Bill.delete(_id).then(async(data)=>{
       const user = await User.findById(data.user).lean()
         const link ="Hủy vé thành công, cảm ơn bạn!"
         console.log(link)

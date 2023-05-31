@@ -11,8 +11,8 @@ const payPal = require('./payPal')
 const news  = require('./new')
 const discount = require('./discount')
 const vote = require('./vote')
-
-
+const priceTicket = require('./priceTicket')
+const statistical= require('./statistical')
 
 function route(app){
     app.use('/api/upload', upload);
@@ -27,6 +27,8 @@ function route(app){
     app.use('/api/new', news);
     app.use('/api/discount', discount);
     app.use('/api/vote', vote);
+    app.use('/api/price-ticket', priceTicket);
+    app.use('/api/statistical', statistical);
 
 }
 

@@ -3,26 +3,28 @@ const Schema= mongoose.Schema;
 var mongooseDelete = require('mongoose-delete');
 
 
-const roomSchema = new Schema({
+const priceTicketSchema = new Schema({
     name:{
         type:String,       
+        required:true
+    },
+    
+    price_time:{
+        type: [],
+
         required:true
     },
     status:{
         type:Boolean,
         default:true,
     },  
-    category:{
-        type: String,
-        enum: ["2D","3D"],
-        default:"2D"
-    }   
+   
 
 },{timestamps:true});
 
-roomSchema.plugin(mongooseDelete,{
+priceTicketSchema.plugin(mongooseDelete,{
     overrideMethods: 'all',
     deletedAt: true,
 })
 
-module.exports = mongoose.model('Room', roomSchema);
+module.exports = mongoose.model('PriceTicket', priceTicketSchema);

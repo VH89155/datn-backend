@@ -7,6 +7,7 @@ const showTimeController = require('../app/controllers/showTimeController')
 
 // router.get("/date", showTimeController.getAllShowTime_Date);
 router.get("/", showTimeController.getAllShowTime);
+router.get("/show-time/success", showTimeController.getAllShowTimeSuccess);
 
 router.post("/", showTimeController.createShowTime);
 router.put("/", showTimeController.editShowTime)

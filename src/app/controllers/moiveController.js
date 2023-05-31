@@ -3,6 +3,9 @@ const ShowTime = require("../models/ShowTime");
 const Room = require("../models/Room");
 const Bluebird = require("bluebird");
 const Discount = require("../models/Discount");
+const Vote = require("../models/Vote")
+const User = require("../models/User")
+
 
 let timeNow = new Date();
 timeNow.setHours(0);
@@ -71,7 +74,20 @@ const Time_MoiveID_Date = async (moiveId,data) => {
 const moiveController = {
   getAllMoive: async (req, res) => {
     try {
+      const timeNow = new Date();
       const moives = await Moive.find();
+      await ShowTime.find().then( async(data)=>{
+        data.map(async(item)=>{
+          const time = new Date(item.time)
+          if(time.getTime() + 14400000  < timeNow.getTime()){
+             await ShowTime.findByIdAndUpdate(item._id,{
+                $set :{
+                  status: true
+                }
+              })
+          }
+        })
+      });
       // console.log(moives);
       res.status(200).json({ moives });
     } catch (err) {
@@ -82,13 +98,29 @@ const moiveController = {
     try {
       const moive = await Moive.findById(req.params.moiveId).lean();
       const moiveId = req.params.moiveId;
+      const votes = await Vote.find({moive:req.params.moiveId}).lean().then(async(data)=>{
+        const array = await Bluebird.map(data,async(item)=>{
+            const user = await User.findById(item.user).lean()
 
+            return{
+              ...item,
+              user: {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+              }
+            }
+
+        },{concurrency: data.length})
+        return array
+      })
       // console.log(moiveId);
 
      arayTimeDate = await Time_MoiveID_Date(moiveId,"all");
 
       //    console.log(arayTimeDate)
-      return res.status(200).json({ moive, arayTimeDate });
+      return res.status(200).json({ moive, arayTimeDate,votes });
       //  res.status(200).json();
       //   return res.status(200).json({product,productsCategory});
     } catch (err) {
@@ -139,8 +171,8 @@ const moiveController = {
 
       // console.log(moivesId, typeof(moivesId))
       const time_query = new Date(req.query.time);
-      console.log(time_query, typeof req.query.time);
-/////////////// No moives ////////////////////////////////////////////////
+    // me);
+/////////////// No moive  console.log(time_query, typeof req.query.tis ////////////////////////////////////////////////
       if (moives == "" || (!moives && req.query.time)) {
         console.log("No moives");
         const moives = await Moive.find().lean();
@@ -166,13 +198,13 @@ const moiveController = {
             });
             const moive = await Moive.findById(item).lean();
             // Promise.all(arrayTime)
-            console.log(arrayTimeDate);
+            // console.log(arrayTimeDate);
 
             return { moive, date: req.query.time, time: arrayTimeDate };
           },
           { concurrency: moives.length }
         );
-        console.log(array);
+        // console.log(array);
         res.status(200).json(array);
 
         // res.status(200).json("No moives found");
@@ -202,7 +234,7 @@ const moiveController = {
         const arrayData = await Bluebird.map(
           allDate,
           async (itemDate) => {
-            console.log(itemDate);
+            // console.log(itemDate);
             const array = await Bluebird.map(
               moives,
               async (item) => {
@@ -260,12 +292,12 @@ const moiveController = {
           },
           { concurrency: moivesId.length }
         );
-        console.log(arrayMoivesTime);
+        // console.log(arrayMoivesTime);
         res.status(200).json(arrayMoivesTime);
       } 
       else if (req.query.time) {
         const moivesId = moives.split(" ");
-        console.log("moivesId: asdsa" + moivesId);
+        // console.log("moivesId: asdsa" + moivesId);
         // let query = `${time_query.getDate()}-${time_query.getMonth()}-${time_query.getFullYear()}`
         const arrayMoivesTime = await Bluebird.map(
           moivesId,
@@ -286,13 +318,13 @@ const moiveController = {
             });
             const moive = await Moive.findById(item).lean();
             // Promise.all(arrayTime)
-            console.log(arrayTimeDate);
+            // console.log(arrayTimeDate);
 
             return { moive, date: req.query.time, time: arrayTimeDate };
           },
           { concurrency: moivesId.length }
         );
-        console.log(arrayMoivesTime);
+        // console.log(arrayMoivesTime);
         res.status(200).json(arrayMoivesTime);
       }
     } catch (error) {

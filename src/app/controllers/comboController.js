@@ -29,6 +29,17 @@ const comboController ={
             
         }
     },
+    getComboID: async(req, res)=>{
+        try {
+            const id = req.params.id
+            const data = await Combo.findById(id).lean()
+            console.log(data)
+            res.status(200).json({success: "success", combo:data})
+        } catch (error) {
+            res.status(401).json({message: error})
+            
+        }
+    },
     editCombo: async(req, res)=>{
         try {
             const {_id, images, price, description  } =  req.body

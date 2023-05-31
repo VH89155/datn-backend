@@ -3,28 +3,25 @@ const Schema= mongoose.Schema;
 var mongooseDelete = require('mongoose-delete');
 
 
-const TicketSchema = new Schema({
+const DetailComboSchema = new Schema({
    
-    time:{
+    combo:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'ShowTime',
+        ref:'Combo',
         required:true,
     },
-    user:{
+    bill:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
+        ref:'Bill',
+        required:true,
+    },    
+    quantity:{
+        type: Number,
         required:true,
     },
-    number:{
-        type:[String],      
-        required:true,
-    },
-    
-    discount:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref:'Discount',
-        default:null
-    },
+   
+    // },
+  
     status:{
         type:Boolean,
         default:false
@@ -33,21 +30,16 @@ const TicketSchema = new Schema({
         type:Boolean,
         default:false
     },
-    vote:{
-            type:Boolean,
-            default:false
-        
-    }
-
+  
 
     
 
 
 },{timestamps:true});
 
-TicketSchema.plugin(mongooseDelete,{
+DetailComboSchema.plugin(mongooseDelete,{
     overrideMethods: 'all',
     deletedAt: true,
 })
 
-module.exports = mongoose.model('Ticket', TicketSchema);
+module.exports = mongoose.model('DetailCombo', DetailComboSchema);

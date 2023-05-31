@@ -9,6 +9,11 @@ const showTimeSchema = new Schema({
         ref:'Moive',
         required:true
     },
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'User',
+        default: null
+    },
     room:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Room',

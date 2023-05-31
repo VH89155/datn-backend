@@ -3,23 +3,36 @@ const Schema= mongoose.Schema;
 var mongooseDelete = require('mongoose-delete');
 
 
-const TicketSchema = new Schema({
+const BillSchema = new Schema({
    
-    time:{
+    ticket:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:'ShowTime',
+        ref:'Ticket',
         required:true,
     },
     user:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'User',
         required:true,
+    },    
+    price:{
+        type:Number,
+        required:true
     },
-    number:{
-        type:[String],      
-        required:true,
+    payment:{
+        type:String,
+        required:true    
     },
-    
+    paymentId:{
+        type:String,
+        default:null,
+    },
+    // combo:{
+    //     type:[mongoose.Schema.Types.ObjectId],
+    //     ref:'Combo',
+    //     default:null
+        
+    // },
     discount:{
         type: mongoose.Schema.Types.ObjectId,
         ref:'Discount',
@@ -33,11 +46,12 @@ const TicketSchema = new Schema({
         type:Boolean,
         default:false
     },
-    vote:{
-            type:Boolean,
-            default:false
+    // vote:{
+       
+    //         type:Boolean,
+    //         default:false
         
-    }
+    // }
 
 
     
@@ -45,9 +59,14 @@ const TicketSchema = new Schema({
 
 },{timestamps:true});
 
-TicketSchema.plugin(mongooseDelete,{
+BillSchema.plugin(mongooseDelete,{
     overrideMethods: 'all',
     deletedAt: true,
 })
 
-module.exports = mongoose.model('Ticket', TicketSchema);
+module.exports = mongoose.model('Bill', BillSchema);
+
+
+
+
+

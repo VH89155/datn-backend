@@ -7,6 +7,11 @@ const NewSchema = new Schema({
         type:String,
         require:true,
     },
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'User',
+        // required:true
+    },
     time:{
         type:Date,
         default:Date.now()
@@ -26,7 +31,8 @@ const NewSchema = new Schema({
     cancel:{
         type:Boolean,
         default:false
-    }
+    },
+
     
 
 
