@@ -689,6 +689,7 @@ const ticketController = {
             return {
               status: item.status,
               cancel: item.cancel,
+              created: item.createdAt,
               _id: item._id,
               ticket: await Ticket.findById(item.ticket).lean().then(async(item)=>{
                 const ticket = `

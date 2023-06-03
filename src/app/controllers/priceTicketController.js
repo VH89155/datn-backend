@@ -13,7 +13,7 @@ const priceTicketController ={
             }) 
              await priceTicket.save()
             // console.log(newCombo)
-            res.status(200).json({success: "success", priceTicket: priceTicket})
+            res.status(200).json({success:true, priceTicket: priceTicket})
         } catch (error) {
             res.status(401).json({message: error})
         }

@@ -14,7 +14,7 @@ router.post('/edit-avatar',authController.updateAvatar);
 router.post('/edit-profile',authController.updateUser);
 router.post('/forgot-pass/sendemail',authController.sendEmailForgotPasword);
 router.post('/forgot-pass/pass-new',authController.passwordNew);
-router.post('/resset-pass',authController.ressetPassword);
+router.post('/auth/resset-pass',authController.ressetPassword);
 router.post('/auth/google', passport.authenticate('google-plus-token',{session:false}),authController.authGoogle );
 router.post('/auth/google-new',authController.authGoogle_New );
 router.post('/auth/facebook', passport.authenticate('facebook-token',{session:false}),authController.authFacebook );

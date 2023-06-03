@@ -250,19 +250,20 @@ const authController = {
   },
   ressetPassword: async (req, res, next) => {
     try {
+      console.log(req.body)
       const { _id, currentPass, newPass } = { ...req.body };
+      
       const userFound = await User.findById(_id);
-      if (!userFound || !userFound._id) {
+      if (!userFound || !userFound._id || !userFound.password) {
         var err = new Error("User not exists!");
-        err.status(404);
-        return next(err);
+        // err.status(404);
+       return res.status(200).json({ success: false });
       }
-  
+      console.log(userFound)
       const isCorrectPassword = await userFound.isValidPassword(currentPass);
       if (!isCorrectPassword) {
         var err = new Error("Current password is not correct!");
-        err.status(404);
-        return next(err);
+        res.status(200).json({ success: false });
       }
       console.log("ok");
       const salt = await bcrypt.genSalt(10);
