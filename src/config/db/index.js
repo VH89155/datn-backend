@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 mongoose.set('strictQuery', true)
 async function connect(){
     try {
-        await mongoose.connect("mongodb://localhost:27017/DATN_Moive",{
+        await mongoose.connect(process.env.MONGO_URI,{
         
         
         });
@@ -33,7 +33,7 @@ function newConnection(uri){
 return conn;
 }
 
-const DATN_MoiveConn = newConnection("mongodb://localhost:27017/DATN_Moive")
+const DATN_MoiveConn = newConnection(process.env.MONGO_URI)
 
 module.exports={
   DATN_MoiveConn,
