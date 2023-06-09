@@ -2,7 +2,7 @@ var mongoose=require('mongoose');
 var Schema=mongoose.Schema;
 var mongooseDelete = require('mongoose-delete');
 const bcrypt=require('bcryptjs');
-
+const {DATN_MoiveConn }= require('../../config/db/index')
 
 var User= new Schema({
     username:{
@@ -84,4 +84,6 @@ User.methods.isValidPassword=async function(newPassword){
 
 
 User.plugin(mongooseDelete,{deteledAt:true ,overrideMethods: true}) //, overrideMethods: true
-module.exports= mongoose.model('User',User);
+// module.exports= mongoose.model('User',User);
+
+module.exports = DATN_MoiveConn.model('User',User);

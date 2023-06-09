@@ -13,6 +13,8 @@ const discount = require('./discount')
 const vote = require('./vote')
 const priceTicket = require('./priceTicket')
 const statistical= require('./statistical')
+const banner = require('./banner')
+
 
 function route(app){
     app.use('/api/upload', upload);
@@ -29,6 +31,7 @@ function route(app){
     app.use('/api/vote', vote);
     app.use('/api/price-ticket', priceTicket);
     app.use('/api/statistical', statistical);
+    app.use('/api/banner', banner);
 
 }
 

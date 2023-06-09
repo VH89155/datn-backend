@@ -507,7 +507,7 @@ const ticket = async(ticketID)=>{
    return data
  
 }
-const timeNow = new Date()
+const timeNow = new Date();
 
 const ticketController = {
   createTicket: async (req, res) => {
@@ -918,7 +918,17 @@ accuracyTicket:  async(req,res)=>{
   try {
    
     const _id = req.params.query
-    const bill = await Bill.findById(_id).lean()
+    const ticket = await Bill.findById(_id).lean().then(async data =>{
+      //console.log(data)
+      return await Ticket.findById(data.ticket).lean()
+    })
+   // console.log(ticket)
+    const showTime = await ShowTime.findById(ticket.time);
+    const time = new Date(showTime.time)
+    console.log(time)
+    if(timeNow.getTime() + 43200000 > time.getTime()){
+      return res.status(200).json({success:false, message:"Không thể hủy vé trước 12h kể từ thời điểm hiện tại tới thời gian bắt đầu chiếu!"});
+    }
     if(ticket) {
     await  Bill.findByIdAndUpdate(_id,{
         $set:{

@@ -39,8 +39,12 @@ const authController = {
         email:req.body.email,
         authType: "loacal",
       })
-      if(checkUser)
-        return res.status(200).json({ success: false,message:"Bạn đã dùng email này để đăng kí tài khoản khác, hãy kiểm tra lại nhé!" });      
+      if(checkUser){
+        const token = encodeToken(checkUser._id)
+        res.setHeader('Authorization',token)
+        return res.status(200).json({ success: true, token: token, info: checkUser });
+      }
+       // return res.status(200).json({ success: false,message:"Bạn đã dùng email này để đăng kí tài khoản khác, hãy kiểm tra lại nhé!" });      
         const user = await User.findOne({
         authGoogleID: req.body.sub,
         email:req.body.email,
@@ -78,24 +82,25 @@ const authController = {
   signUp: async (req, res) => {
     console.log("data:", req.body);
     try {
-      const { username, email, password } = req.body;
+      const { username, email, password,admin } = req.body;
       const foundUser = await User.findOne({ email });
       // console.log(foundUser);
       if (foundUser)
         return res
-          .status(403)
-          .json({ error: { message: "Email is already in use" } });
+          .status(200)
+          .json({ success: false,  message: "Email đã được sử dụng"  });
       const foundUserName = await User.findOne({ username });
       // console.log(foundUser);
       if (foundUserName)
         return res
-          .status(403)
-          .json({ error: { message: "UserName is already in use" } });
+          .status(200)
+          .json({ success: false,message: "UserName đã được sử dụng"  });
 
       const newUser = new User({
         username: username,
         email: email,
         password: password,
+        admin: admin ?? false 
       });
       console.log("new User", newUser);
        newUser.save(async (err, user) => {
@@ -181,6 +186,19 @@ const authController = {
       const { _id, phoneNumber, address, fullName } = req.body;
       const user = await User.findByIdAndUpdate(_id, {
         $set: { phoneNumber, address, fullName },
+      });
+
+      return res.status(200).json({ success: true, user });
+    } catch (error) {
+      console.log(error);
+    }
+  },
+  updateUserAdmin: async (req, res) => {
+    try {
+      const { _id,admin } = req.body;
+      console.log(_id,admin)
+      const user = await User.findByIdAndUpdate(_id, {
+        $set: { admin },
       });
 
       return res.status(200).json({ success: true, user });
@@ -278,6 +296,48 @@ const authController = {
     } catch (err) {
       next(err);
     }
+  },
+  deleteUser: async (req, res) => {
+    try {
+      const deleted = await User.delete({ _id:{$in: req.params.id}})
+      
+      res.status(200).json({success:true,status:"Deleted success !"});
+     
+    } catch (error) {
+      console.log(error);
+      res.status(401).json(error);
+    }
+  },
+  deleteUserForce: async (req, res) => {
+    try {
+      await User.deleteOne({ _id:{$in: req.params.id}})
+      
+      res.status(200).json({success:true,status:"Deleted success !"});
+     
+    } catch (error) {
+      console.log(error);
+      res.status(401).json(error);
+    }
+  },
+  trashUsers: async(req,res) =>{
+    try{
+      const users = await User.findDeleted();
+      return res.status(200).json(users)
+    }
+    catch(err){
+      return res.status(401).json(err);
+    }
+  },
+  restoreUser: async(req,res)=>{
+    try{
+     await User.restore({ _id: req.params.id })
+      return res.status(200).json({success:true});
+    }
+    catch(err){
+      return res.status(401).json(err);
+    }
   }
+
+
 };
 module.exports = authController;
