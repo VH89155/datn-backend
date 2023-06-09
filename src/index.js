@@ -14,7 +14,7 @@ app.use(function(req, res, next) {
   next();
 });
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: 'https://vh89155.github.io/dant-frontend',
   
 }));
 
