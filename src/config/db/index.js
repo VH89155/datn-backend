@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 mongoose.set('strictQuery', true)
 async function connect(){
     try {
-        await mongoose.connect(process.env.MONGO_URI,{
+        await mongoose.connect("mongodb+srv://xuan:nhathiep123@cluster0.aihrsvp.mongodb.net/Moives",{
         
         
         });
@@ -33,7 +33,7 @@ function newConnection(uri){
 return conn;
 }
 
-const DATN_MoiveConn = newConnection(process.env.MONGO_URI)
+const DATN_MoiveConn = newConnection("mongodb+srv://xuan:nhathiep123@cluster0.aihrsvp.mongodb.net/Moives")
 
 module.exports={
   DATN_MoiveConn,
