@@ -27,10 +27,10 @@ async(payload,done)=>{
 
 //passport local
 passport.use(new localStrategy({
-    usernameField:'email'    // bang  voi truong nhan tu body
+    email :"email"  // bang  voi truong nhan tu body
 }, async (email,password,done)=>{
     try{
-        console.log('email',email)
+        console.log('payload',payload)
         const user=await User.findOne({email});
         if(!user){
             return done(null,false);
